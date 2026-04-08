@@ -1,0 +1,13 @@
+spec_version: 1
+name: support_ticket_envdir
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
+description: RL environment for AI-powered customer support ticket routing
+author: Velmurugan07
+tasks:
+  easy_routing: Route tickets with obvious single-department issues
+  medium_routing: Route ambiguous tickets that could fit multiple departments
+  hard_routing: Route complex multi-issue tickets requiring reasoning
+
