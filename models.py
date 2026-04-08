@@ -30,9 +30,12 @@ class SupportTicketEnvdirObservation(Observation):
 class TicketAction(BaseModel):
     """Action for ticket routing - department assignment with confidence and reasoning."""
 
-    department: str = Field(..., description="Target department for the ticket")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score for the routing decision")
-    reasoning: str = Field(..., description="Explanation for the routing decision")
+    department: str
+    confidence: float = 0.8
+    reasoning: str = ""
+    
+    class Config:
+        extra = "ignore"  # Allow extra fields without error
 
 
 class TicketObservation(Observation):

@@ -1,21 +1,11 @@
 ---
-title: Support Ticket Envdir Environment Server
-emoji: 🎖️
-colorFrom: purple
-colorTo: red
 sdk: docker
-pinned: false
-app_port: 8000
-base_path: /web
-tags:
-  - openenv
+app_port: 7860
 ---
 
-# Support Ticket Envdir Environment
+# Support Ticket Routing Environment
 
-An RL environment for AI-powered customer support ticket routing. This environment tests an agent's ability to classify and route customer support tickets to appropriate departments based on ticket content, customer tier, and priority.
-
-## Environment Description & Motivation
+## 1. Environment Description & Motivation
 
 Customer support ticket routing is a critical real-world task that requires understanding natural language, context, and business rules. This environment provides a realistic simulation where AI agents must route tickets to one of five departments:
 

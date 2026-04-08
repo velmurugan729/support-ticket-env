@@ -36,18 +36,18 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 try:
-    from ..models import SupportTicketEnvdirAction, SupportTicketEnvdirObservation
+    from ..models import TicketAction, TicketObservation
     from .support_ticket_envdir_environment import SupportTicketEnvdirEnvironment
 except (ModuleNotFoundError, ImportError):
-    from models import SupportTicketEnvdirAction, SupportTicketEnvdirObservation
+    from models import TicketAction, TicketObservation
     from server.support_ticket_envdir_environment import SupportTicketEnvdirEnvironment
 
 
 # Create the app with web interface and README integration
 app = create_app(
     SupportTicketEnvdirEnvironment,
-    SupportTicketEnvdirAction,
-    SupportTicketEnvdirObservation,
+    TicketAction,
+    TicketObservation,
     env_name="support_ticket_envdir",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
 )

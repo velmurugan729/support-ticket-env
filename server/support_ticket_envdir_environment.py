@@ -129,29 +129,49 @@ class SupportTicketEnvdirEnvironment(Environment):
         task_config = _task_manager.get_task_config(task_name)
         max_steps = task_config["max_steps"]
 
-        return TicketObservation(
-            ticket_id=self._current_ticket_data["ticket_id"],
-            subject=self._current_ticket_data["subject"],
-            body=self._current_ticket_data["body"],
-            customer_tier=self._current_ticket_data["customer_tier"],
-            priority=self._current_ticket_data["priority"],
-            task_difficulty=self._current_ticket_data["difficulty"],
-            steps_taken=0,
-            max_steps=max_steps,
-            done=False,
-            reward=0.0,
-        )
+        # Create observation dict to be compatible with TicketObservation
+        obs_dict = {
+            "ticket_id": self._current_ticket_data["ticket_id"],
+            "subject": self._current_ticket_data["subject"],
+            "body": self._current_ticket_data["body"],
+            "customer_tier": self._current_ticket_data["customer_tier"],
+            "priority": self._current_ticket_data["priority"],
+            "task_difficulty": self._current_ticket_data["difficulty"],
+            "steps_taken": 0,
+            "max_steps": max_steps,
+        }
+        return TicketObservation(**obs_dict)
 
-    def step(self, action: TicketAction) -> TicketObservation:  # type: ignore[override]
+    def step(self, action_data) -> TicketObservation:  # type: ignore[override]
         """
         Execute a step in the environment by evaluating a routing decision.
 
         Args:
-            action: TicketAction containing the department, confidence, and reasoning
+            action_data: TicketAction or dict containing the department, confidence, and reasoning
 
         Returns:
             TicketObservation with updated state and reward
         """
+        # Convert dict to TicketAction if needed
+        try:
+            if isinstance(action_data, dict):
+                action = TicketAction(**action_data)
+            else:
+                action = action_data
+        except Exception as e:
+            # Return error observation with only TicketObservation fields
+            error_dict = {
+                "ticket_id": self._current_ticket_data["ticket_id"] if self._current_ticket_data else "",
+                "subject": "Error",
+                "body": f"Invalid action: {str(e)}",
+                "customer_tier": "",
+                "priority": "",
+                "task_difficulty": "",
+                "steps_taken": self._state.step_count,
+                "max_steps": 1,
+            }
+            return TicketObservation(**error_dict)
+
         if self._episode_done:
             # Episode already done, return terminal observation
             return self._get_current_observation()
@@ -188,23 +208,18 @@ class SupportTicketEnvdirEnvironment(Environment):
         task_config = _task_manager.get_task_config(task_name)
         max_steps = task_config["max_steps"]
 
-        return TicketObservation(
-            ticket_id=self._current_ticket_data["ticket_id"],
-            subject=self._current_ticket_data["subject"],
-            body=self._current_ticket_data["body"],
-            customer_tier=self._current_ticket_data["customer_tier"],
-            priority=self._current_ticket_data["priority"],
-            task_difficulty=self._current_ticket_data["difficulty"],
-            steps_taken=self._state.step_count,
-            max_steps=max_steps,
-            done=self._episode_done,
-            reward=self._cumulative_reward if self._episode_done else 0.0,
-            metadata={
-                "step_rewards": self._step_rewards,
-                "correct_department": self._current_ticket_data["correct_department"],
-                "task_name": task_name,
-            },
-        )
+        # Create observation dict with only TicketObservation fields
+        obs_dict = {
+            "ticket_id": self._current_ticket_data["ticket_id"],
+            "subject": self._current_ticket_data["subject"],
+            "body": self._current_ticket_data["body"],
+            "customer_tier": self._current_ticket_data["customer_tier"],
+            "priority": self._current_ticket_data["priority"],
+            "task_difficulty": self._current_ticket_data["difficulty"],
+            "steps_taken": self._state.step_count,
+            "max_steps": max_steps,
+        }
+        return TicketObservation(**obs_dict)
 
     @property
     def state(self) -> State:
