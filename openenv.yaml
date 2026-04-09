@@ -3,7 +3,7 @@ name: support_ticket_envdir
 type: space
 runtime: fastapi
 app: server.app:app
-port: 8000
+port: 7860
 description: RL environment for AI-powered customer support ticket routing
 author: Velmurugan07
 tasks:

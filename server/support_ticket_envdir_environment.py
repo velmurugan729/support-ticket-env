@@ -18,11 +18,11 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
 try:
-    from ..models import SupportTicketEnvdirAction, SupportTicketEnvdirObservation, TicketAction, TicketObservation, TicketState
+    from ..models import TicketAction, TicketObservation, TicketState
     from ..tasks import TaskManager
     from ..data.tickets import TICKETS
 except ImportError:
-    from models import SupportTicketEnvdirAction, SupportTicketEnvdirObservation, TicketAction, TicketObservation, TicketState
+    from models import TicketAction, TicketObservation, TicketState
     from tasks import TaskManager
     from data.tickets import TICKETS
 
@@ -110,12 +110,8 @@ class SupportTicketEnvdirEnvironment(Environment):
     def reset(self) -> TicketObservation:
         """
         Reset the environment for a new episode.
-
-        Returns:
-            TicketObservation with the current ticket information
         """
         self._state = State(episode_id=str(uuid4()), step_count=0)
-        self._reset_count += 1
         self._cumulative_reward = 0.0
         self._step_rewards = []
         self._episode_done = False
@@ -123,103 +119,101 @@ class SupportTicketEnvdirEnvironment(Environment):
 
         # Get current task and ticket
         task_name = get_current_task()
-        self._current_ticket_data = get_ticket_for_task(task_name, _current_ticket_index)
-        increment_ticket_index()
+        try:
+            self._current_ticket_data = get_ticket_for_task(task_name, _current_ticket_index)
+            increment_ticket_index()
+        except Exception:
+            # Fallback ticket data if something goes wrong
+            self._current_ticket_data = {
+                "ticket_id": f"ERR-{uuid4().hex[:4]}",
+                "subject": "System Reset Error",
+                "body": "There was an error retrieving the ticket data.",
+                "customer_tier": "bronze",
+                "priority": "low",
+                "difficulty": task_name,
+                "correct_department": "General",
+                "adjacent_departments": []
+            }
 
-        task_config = _task_manager.get_task_config(task_name)
-        max_steps = task_config["max_steps"]
-
-        # Create observation dict to be compatible with TicketObservation
-        obs_dict = {
-            "ticket_id": self._current_ticket_data["ticket_id"],
-            "subject": self._current_ticket_data["subject"],
-            "body": self._current_ticket_data["body"],
-            "customer_tier": self._current_ticket_data["customer_tier"],
-            "priority": self._current_ticket_data["priority"],
-            "task_difficulty": self._current_ticket_data["difficulty"],
-            "steps_taken": 0,
-            "max_steps": max_steps,
-        }
-        return TicketObservation(**obs_dict)
+        return self._get_current_observation(reward=0.05, done=False)
 
     def step(self, action_data) -> TicketObservation:  # type: ignore[override]
         """
         Execute a step in the environment by evaluating a routing decision.
-
-        Args:
-            action_data: TicketAction or dict containing the department, confidence, and reasoning
-
-        Returns:
-            TicketObservation with updated state and reward
         """
-        # Convert dict to TicketAction if needed
-        try:
-            if isinstance(action_data, dict):
+        # Safe parsing with fallback 
+        try: 
+            if isinstance(action_data, TicketAction):
+                action = action_data
+            elif isinstance(action_data, dict):
                 action = TicketAction(**action_data)
             else:
-                action = action_data
-        except Exception as e:
-            # Return error observation with only TicketObservation fields
-            error_dict = {
-                "ticket_id": self._current_ticket_data["ticket_id"] if self._current_ticket_data else "",
-                "subject": "Error",
-                "body": f"Invalid action: {str(e)}",
-                "customer_tier": "",
-                "priority": "",
-                "task_difficulty": "",
-                "steps_taken": self._state.step_count,
-                "max_steps": 1,
-            }
-            return TicketObservation(**error_dict)
+                action = TicketAction()
+        except Exception: 
+            action = TicketAction()  # defaults to General 
 
-        if self._episode_done:
-            # Episode already done, return terminal observation
-            return self._get_current_observation()
+        dept = (action.department or "").strip().lower() 
 
-        self._state.step_count += 1
+        # Empty or default department → light penalty, continue episode 
+        if not dept or dept == "general": 
+            reward = 0.05 
+            done = False 
+            # Do not increment step_count for invalid actions 
+        else: 
+            # Real department → call grader 
+            task_name = get_current_task()
+            correct_dept = self._current_ticket_data.get("correct_department", "General") 
+            adjacent_depts = self._current_ticket_data.get("adjacent_departments", []) 
 
-        # Grade the action
-        task_name = get_current_task()
-        grade = _task_manager.grade_action(
-            task_name=task_name,
-            predicted_department=action.department,
-            correct_department=self._current_ticket_data["correct_department"],
-            adjacent_departments=self._current_ticket_data["adjacent_departments"],
-            step_count=self._state.step_count
-        )
+            if task_name == "easy_routing": 
+                reward = _task_manager.grade_easy(dept, correct_dept)
+            elif task_name == "medium_routing": 
+                reward = _task_manager.grade_medium(dept, correct_dept, adjacent_depts) 
+            else: 
+                # For hard_routing, handle previous_actions
+                if not hasattr(_task_manager, '_previous_actions'):
+                    _task_manager._previous_actions = []
+                # Use current step_count + 1 as the step number for the grader
+                reward = _task_manager.grade_hard(dept, correct_dept, self._state.step_count + 1, _task_manager._previous_actions) 
+                _task_manager._previous_actions.append(dept)
 
-        # Update rewards
-        self._cumulative_reward += grade
-        self._step_rewards.append(grade)
+            reward = max(0.05, min(0.95, float(reward))) 
+            
+            task_config = _task_manager.get_task_config(task_name)
+            max_steps = task_config.get("max_steps", 5)
+            done = (reward >= 0.85) or (self._state.step_count >= max_steps) 
 
-        # Check if episode is done
-        task_config = _task_manager.get_task_config(task_name)
-        self._episode_done = _task_manager.is_done(
-            task_name=task_name,
-            step_count=self._state.step_count,
-            grade=grade
-        )
+            # Update state 
+            self._state.step_count += 1 
+            self._cumulative_reward += reward 
+            self._episode_done = done
 
-        return self._get_current_observation()
+        return self._get_current_observation(reward=float(reward), done=bool(done))
 
-    def _get_current_observation(self) -> TicketObservation:
+    def _get_current_observation(self, reward: float = 0.05, done: bool = False) -> TicketObservation:
         """Get the current observation with updated state."""
         task_name = get_current_task()
-        task_config = _task_manager.get_task_config(task_name)
-        max_steps = task_config["max_steps"]
+        if not self._current_ticket_data:
+            self._current_ticket_data = get_ticket_for_task(task_name, _current_ticket_index)
 
-        # Create observation dict with only TicketObservation fields
-        obs_dict = {
-            "ticket_id": self._current_ticket_data["ticket_id"],
-            "subject": self._current_ticket_data["subject"],
-            "body": self._current_ticket_data["body"],
-            "customer_tier": self._current_ticket_data["customer_tier"],
-            "priority": self._current_ticket_data["priority"],
-            "task_difficulty": self._current_ticket_data["difficulty"],
-            "steps_taken": self._state.step_count,
-            "max_steps": max_steps,
-        }
-        return TicketObservation(**obs_dict)
+        task_config = _task_manager.get_task_config(task_name)
+        max_steps = task_config.get("max_steps", 1)
+
+        # Ensure reward is a float and within bounds [0.05, 0.95]
+        final_reward = float(max(0.05, min(0.95, reward)))
+
+        return TicketObservation(
+            ticket_id=str(self._current_ticket_data.get("ticket_id", "unknown")),
+            subject=str(self._current_ticket_data.get("subject", "No Subject")),
+            body=str(self._current_ticket_data.get("body", "No Body")),
+            customer_tier=str(self._current_ticket_data.get("customer_tier", "bronze")),
+            priority=str(self._current_ticket_data.get("priority", "low")),
+            task_difficulty=str(self._current_ticket_data.get("difficulty", task_name)),
+            steps_taken=int(self._state.step_count),
+            max_steps=int(max_steps),
+            reward=final_reward,
+            done=bool(done or self._episode_done),
+        )
 
     @property
     def state(self) -> State:

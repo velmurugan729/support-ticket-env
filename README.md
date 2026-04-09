@@ -67,25 +67,25 @@ The environment includes three difficulty levels to test different aspects of ro
 The reward function is deterministic and varies by task difficulty:
 
 ### Easy Routing
-- **Correct department**: 1.0
-- **Incorrect department**: 0.0
+- **Correct department**: 0.95
+- **Incorrect department**: 0.05
 
 ### Medium Routing
-- **Correct department**: 1.0
-- **Adjacent department** (related but not correct): 0.4
-- **Wrong department**: 0.0
+- **Correct department**: 0.92
+- **Adjacent department** (related but not correct): 0.45
+- **Wrong department**: 0.08
 
 ### Hard Routing
 Rewards decay based on step number (encourages quick correct answers):
-- **Step 1 correct**: 1.0
-- **Step 2 correct**: 0.7
-- **Step 3 correct**: 0.4
-- **Adjacent department**: 50% of step value
-- **Repeated wrong answers**: Additional -0.2 penalty (prevents guessing)
+- **Step 1 correct**: 0.88
+- **Step 2 correct**: 0.65
+- **Step 3 correct**: 0.40
+- **Wrong department (first time)**: 0.12
+- **Repeated wrong answer**: 0.05 (penalty for guessing)
 
 The episode ends when:
 - Max steps are reached, OR
-- A perfect score (1.0) is achieved
+- A high score (≥0.90) is achieved
 
 ## Setup Instructions
 

@@ -12,11 +12,11 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
-from .models import SupportTicketEnvdirAction, SupportTicketEnvdirObservation
+from .models import TicketAction, TicketObservation
 
 
 class SupportTicketEnvdirEnv(
-    EnvClient[SupportTicketEnvdirAction, SupportTicketEnvdirObservation, State]
+    EnvClient[TicketAction, TicketObservation, State]
 ):
     """
     Client for the Support Ticket Envdir Environment.
@@ -27,60 +27,70 @@ class SupportTicketEnvdirEnv(
 
     Example:
         >>> # Connect to a running server
-        >>> with SupportTicketEnvdirEnv(base_url="http://localhost:8000") as client:
+        >>> with SupportTicketEnvdirEnv(base_url="http://localhost:7860") as client:
         ...     result = client.reset()
-        ...     print(result.observation.echoed_message)
+        ...     print(result.observation.subject)
         ...
-        ...     result = client.step(SupportTicketEnvdirAction(message="Hello!"))
-        ...     print(result.observation.echoed_message)
+        ...     result = client.step(TicketAction(department="Billing", confidence=0.9, reasoning="Payment issue"))
+        ...     print(result.observation.ticket_id)
 
     Example with Docker:
         >>> # Automatically start container and connect
         >>> client = SupportTicketEnvdirEnv.from_docker_image("support_ticket_envdir-env:latest")
         >>> try:
         ...     result = client.reset()
-        ...     result = client.step(SupportTicketEnvdirAction(message="Test"))
+        ...     result = client.step(TicketAction(department="Technical", confidence=0.8, reasoning="Bug report"))
         ... finally:
         ...     client.close()
     """
 
-    def _step_payload(self, action: SupportTicketEnvdirAction) -> Dict:
+    def _step_payload(self, action: TicketAction) -> Dict:
         """
-        Convert SupportTicketEnvdirAction to JSON payload for step message.
+        Convert TicketAction to JSON payload for step message.
 
         Args:
-            action: SupportTicketEnvdirAction instance
+            action: TicketAction instance
 
         Returns:
             Dictionary representation suitable for JSON encoding
         """
         return {
-            "message": action.message,
+            "department": action.department,
+            "confidence": action.confidence,
+            "reasoning": action.reasoning,
         }
 
-    def _parse_result(self, payload: Dict) -> StepResult[SupportTicketEnvdirObservation]:
+    def _parse_result(self, payload: Dict) -> StepResult[TicketObservation]:
         """
-        Parse server response into StepResult[SupportTicketEnvdirObservation].
+        Parse server response into StepResult[TicketObservation].
 
         Args:
             payload: JSON response data from server
 
         Returns:
-            StepResult with SupportTicketEnvdirObservation
+            StepResult with TicketObservation
         """
         obs_data = payload.get("observation", {})
-        observation = SupportTicketEnvdirObservation(
-            echoed_message=obs_data.get("echoed_message", ""),
-            message_length=obs_data.get("message_length", 0),
-            done=payload.get("done", False),
-            reward=payload.get("reward"),
-            metadata=obs_data.get("metadata", {}),
+        observation = TicketObservation(
+            ticket_id=obs_data.get("ticket_id", ""),
+            subject=obs_data.get("subject", ""),
+            body=obs_data.get("body", ""),
+            customer_tier=obs_data.get("customer_tier", ""),
+            priority=obs_data.get("priority", ""),
+            task_difficulty=obs_data.get("task_difficulty", ""),
+            steps_taken=obs_data.get("steps_taken", 0),
+            max_steps=obs_data.get("max_steps", 1),
+            reward=obs_data.get("reward", 0.0),
+            done=obs_data.get("done", False),
         )
+
+        # Reward comes from observation to ensure it's never null
+        reward = float(observation.reward) if observation.reward is not None else 0.0
 
         return StepResult(
             observation=observation,
-            reward=payload.get("reward"),
-            done=payload.get("done", False),
+            reward=reward,
+            done=observation.done,
         )
 
     def _parse_state(self, payload: Dict) -> State:
