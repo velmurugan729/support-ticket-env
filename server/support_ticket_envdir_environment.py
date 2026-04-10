@@ -141,26 +141,28 @@ class SupportTicketEnvdirEnvironment(Environment):
         """
         Execute a step in the environment by evaluating a routing decision.
         """
-        # Safe parsing with fallback 
+        is_valid_action = True
         try: 
             if isinstance(action_data, TicketAction):
                 action = action_data
             elif isinstance(action_data, dict):
                 action = TicketAction(**action_data)
             else:
+                is_valid_action = False
                 action = TicketAction()
         except Exception: 
-            action = TicketAction()  # defaults to General 
+            is_valid_action = False
+            action = TicketAction() 
 
         dept = (action.department or "").strip().lower() 
 
-        # Empty or default department → light penalty, continue episode 
-        if not dept or dept == "general": 
+        # 1. Validate if it's a real routing attempt (not empty, not "General", and was parsed correctly)
+        if not is_valid_action or not dept or dept == "general": 
+            # Invalid action or default → light penalty, retry allowed, NO step count increase 
             reward = 0.05 
             done = False 
-            # Do not increment step_count for invalid actions 
         else: 
-            # Real department → call grader 
+            # 2. Real department → call grader 
             task_name = get_current_task()
             correct_dept = self._current_ticket_data.get("correct_department", "General") 
             adjacent_depts = self._current_ticket_data.get("adjacent_departments", []) 
@@ -170,22 +172,22 @@ class SupportTicketEnvdirEnvironment(Environment):
             elif task_name == "medium_routing": 
                 reward = _task_manager.grade_medium(dept, correct_dept, adjacent_depts) 
             else: 
-                # For hard_routing, handle previous_actions
                 if not hasattr(_task_manager, '_previous_actions'):
                     _task_manager._previous_actions = []
-                # Use current step_count + 1 as the step number for the grader
                 reward = _task_manager.grade_hard(dept, correct_dept, self._state.step_count + 1, _task_manager._previous_actions) 
                 _task_manager._previous_actions.append(dept)
 
             reward = max(0.05, min(0.95, float(reward))) 
-            
-            task_config = _task_manager.get_task_config(task_name)
-            max_steps = task_config.get("max_steps", 5)
-            done = (reward >= 0.85) or (self._state.step_count >= max_steps) 
 
-            # Update state 
+            # 3. Increment step_count ONLY after all validation checks for real attempts 
             self._state.step_count += 1 
             self._cumulative_reward += reward 
+            self._step_rewards.append(reward)
+
+            # 4. Done ONLY on high reward OR max real steps reached 
+            task_config = _task_manager.get_task_config(task_name)
+            max_steps = task_config.get("max_steps", 3) 
+            done = (reward >= 0.85) or (self._state.step_count >= max_steps) 
             self._episode_done = done
 
         return self._get_current_observation(reward=float(reward), done=bool(done))
@@ -212,7 +214,7 @@ class SupportTicketEnvdirEnvironment(Environment):
             steps_taken=int(self._state.step_count),
             max_steps=int(max_steps),
             reward=final_reward,
-            done=bool(done or self._episode_done),
+            done=bool(done),
         )
 
     @property

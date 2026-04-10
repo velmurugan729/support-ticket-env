@@ -7,10 +7,10 @@
 """Support Ticket Envdir Environment."""
 
 from .client import SupportTicketEnvdirEnv
-from .models import SupportTicketEnvdirAction, SupportTicketEnvdirObservation
+from .models import TicketAction, TicketObservation
 
 __all__ = [
-    "SupportTicketEnvdirAction",
-    "SupportTicketEnvdirObservation",
+    "TicketAction",
+    "TicketObservation",
     "SupportTicketEnvdirEnv",
 ]

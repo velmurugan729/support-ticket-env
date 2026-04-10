@@ -76,8 +76,8 @@ def run_task(task_name: str):
  
             obs = result 
 
-        score = sum(rewards) / (MAX_STEPS_PER_TASK * 1.0) if rewards else 0.0 
-        score = min(max(score, 0.0), 1.0) 
+        score = sum(rewards) / len(rewards) if rewards else 0.05 
+        score = min(max(score, 0.01), 0.99) 
         success = score >= 0.5 
 
     finally: 
@@ -93,7 +93,7 @@ def main():
         results.append((task, success, score))
     
     # Official [SUMMARY] line
-    total_score = sum(r[2] for r in results) / len(results) if results else 0.0
+    total_score = sum(r[2] for r in results) / len(results) if results else 0.05
     success_count = sum(1 for r in results if r[1])
     print(f"[SUMMARY] tasks_completed={len(results)} success_count={success_count} avg_score={total_score:.3f}", flush=True)
 
