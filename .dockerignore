@@ -1,35 +1,4 @@
-# Python virtual environments
-.venv/
-venv/
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# UV cache
-.uv/
-
-# Git
-.git/
-.gitignore
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Documentation
-docs/_build/
-
-# Logs
-*.log
+__pycache__/ 
+outputs/ 
+.venv/ 
+*.pyc 

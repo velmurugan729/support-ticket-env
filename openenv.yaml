@@ -1,5 +1,5 @@
 spec_version: 1
-name: support_ticket_envdir
+name: support-ticket-envdir-v2
 type: space
 runtime: fastapi
 app: server.app:app
@@ -10,4 +10,3 @@ tasks:
   easy_routing: Route tickets with obvious single-department issues
   medium_routing: Route ambiguous tickets that could fit multiple departments
   hard_routing: Route complex multi-issue tickets requiring reasoning
-
