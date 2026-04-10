@@ -48,7 +48,7 @@ app = create_app(
     SupportTicketEnvdirEnvironment,
     TicketAction,
     TicketObservation,
-    env_name="support_ticket_envdir",
+    env_name="support-ticket-envdir-v2",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
 )
 

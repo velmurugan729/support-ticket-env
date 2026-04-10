@@ -12,7 +12,12 @@ to classify and route tickets to appropriate departments.
 """
 
 import random
+import logging
 from uuid import uuid4
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
@@ -106,6 +111,8 @@ class SupportTicketEnvdirEnvironment(Environment):
         self._cumulative_reward = 0.0
         self._step_rewards = []
         self._episode_done = False
+        self._last_action = ""
+        self._last_reward = 0.0
 
     def reset(self) -> TicketObservation:
         """
@@ -115,6 +122,8 @@ class SupportTicketEnvdirEnvironment(Environment):
         self._cumulative_reward = 0.0
         self._step_rewards = []
         self._episode_done = False
+        self._last_action = ""
+        self._last_reward = 0.0
         _task_manager.reset_episode()
 
         # Get current task and ticket
@@ -155,12 +164,14 @@ class SupportTicketEnvdirEnvironment(Environment):
             action = TicketAction() 
 
         dept = (action.department or "").strip().lower() 
+        logger.info(f"Action: department='{dept}', confidence={action.confidence}")
 
         # 1. Validate if it's a real routing attempt (not empty, not "General", and was parsed correctly)
         if not is_valid_action or not dept or dept == "general": 
             # Invalid action or default → light penalty, retry allowed, NO step count increase 
             reward = 0.05 
             done = False 
+            logger.info("Invalid or default action. Retrying...")
         else: 
             # 2. Real department → call grader 
             task_name = get_current_task()
@@ -174,21 +185,25 @@ class SupportTicketEnvdirEnvironment(Environment):
             else: 
                 if not hasattr(_task_manager, '_previous_actions'):
                     _task_manager._previous_actions = []
-                reward = _task_manager.grade_hard(dept, correct_dept, self._state.step_count + 1, _task_manager._previous_actions) 
+                reward = _task_manager.grade_hard(dept, correct_dept, self._state.step_count + 1, _task_manager._previous_actions, adjacent_depts) 
                 _task_manager._previous_actions.append(dept)
 
             reward = max(0.05, min(0.95, float(reward))) 
+            logger.info(f"Task: {task_name}, Grader reward: {reward:.2f}")
 
             # 3. Increment step_count ONLY after all validation checks for real attempts 
             self._state.step_count += 1 
             self._cumulative_reward += reward 
             self._step_rewards.append(reward)
+            self._last_action = action.department
+            self._last_reward = reward
 
             # 4. Done ONLY on high reward OR max real steps reached 
             task_config = _task_manager.get_task_config(task_name)
             max_steps = task_config.get("max_steps", 3) 
             done = (reward >= 0.85) or (self._state.step_count >= max_steps) 
             self._episode_done = done
+            logger.info(f"Step {self._state.step_count}/{max_steps}, Done: {done}")
 
         return self._get_current_observation(reward=float(reward), done=bool(done))
 
@@ -215,6 +230,8 @@ class SupportTicketEnvdirEnvironment(Environment):
             max_steps=int(max_steps),
             reward=final_reward,
             done=bool(done),
+            last_action=str(self._last_action),
+            last_reward=float(self._last_reward),
         )
 
     @property

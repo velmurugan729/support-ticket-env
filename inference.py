@@ -50,9 +50,20 @@ def run_task(task_name: str):
         obs = env.reset() 
         for step in range(1, MAX_STEPS_PER_TASK + 1): 
             # Get action from LLM 
+            system_prompt = (
+                "You are a customer support routing agent. Route tickets to exactly one department: "
+                "Billing, Technical, Shipping, Returns, or General. Respond ONLY in JSON: "
+                '{"department": "<dept>", "confidence": 0.9, "reasoning": "<why>"}. '
+                "Departments: Billing (payment/refunds), Technical (bugs/login), "
+                "Shipping (tracking/address), Returns (exchanges/damaged), General (other)."
+            )
+            
             response = client.chat.completions.create( 
                 model=MODEL_NAME, 
-                messages=[{"role": "user", "content": f"Route this ticket to the correct department.\nTicket: {obs}"}], 
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Route this ticket correctly.\nTicket: {obs}"}
+                ], 
                 temperature=0.7, 
                 max_tokens=100 
             ) 

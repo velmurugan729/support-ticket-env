@@ -51,6 +51,8 @@ class TicketObservation(Observation):
     max_steps: int = Field(default=1, ge=1, description="Maximum steps allowed for this task")
     reward: float = Field(default=0.05, description="Reward for the current step")
     done: bool = Field(default=False, description="Whether the episode is complete")
+    last_action: str = Field(default="", description="The department selected in the previous step")
+    last_reward: float = Field(default=0.0, description="The reward received for the previous action")
 
 
 class TicketState(BaseModel):
