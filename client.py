@@ -1,4 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
+﻿# Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
 # This source code is licensed under the BSD-style license found in the
@@ -12,7 +12,10 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
-from .models import TicketAction, TicketObservation
+try:
+    from .models import TicketAction, TicketObservation
+except (ImportError, ValueError):
+    from models import TicketAction, TicketObservation
 
 
 class SupportTicketEnvdirEnv(

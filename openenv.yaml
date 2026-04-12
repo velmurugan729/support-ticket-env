@@ -1,4 +1,4 @@
-spec_version: 1
+﻿spec_version: 1
 name: support-ticket-envdir-v2
 type: space
 runtime: fastapi

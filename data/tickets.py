@@ -1,4 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
+﻿# Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
 # This source code is licensed under the BSD-style license found in the
@@ -21,6 +21,7 @@ TICKETS = [
         "body": "I was charged $49.99 on my credit card but the payment isn't reflected in my account balance. Please check this billing discrepancy.",
         "customer_tier": "silver",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Billing",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -31,6 +32,7 @@ TICKETS = [
         "body": "Every time I try to save my work in the application, it crashes with error code 0x0000005. This started happening after the last update.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Technical",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -41,6 +43,7 @@ TICKETS = [
         "body": "My order #12345 was marked as delivered yesterday but I never received it. The tracking says it was left at front door but nothing is there.",
         "customer_tier": "bronze",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Shipping",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -51,6 +54,7 @@ TICKETS = [
         "body": "The product I received arrived with a cracked screen. I would like to return it for a full refund. The box was also damaged.",
         "customer_tier": "platinum",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Returns",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -61,6 +65,7 @@ TICKETS = [
         "body": "I received invoice #INV-2024-789 but the amount is incorrect. I was quoted $200 but the invoice shows $250. Please correct this.",
         "customer_tier": "silver",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Billing",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -71,6 +76,7 @@ TICKETS = [
         "body": "I cannot log into my account. I've reset my password three times but keep getting 'authentication failed' error. My username is john_doe123.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Technical",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -81,6 +87,7 @@ TICKETS = [
         "body": "I just placed order #67890 and realized I used my old address. The package is going to the wrong place. Can this be corrected before it ships?",
         "customer_tier": "bronze",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Shipping",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -91,6 +98,7 @@ TICKETS = [
         "body": "I'm trying to process a return for order #54321 but the system won't generate a return label. It just spins and then shows an error message.",
         "customer_tier": "silver",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Returns",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -101,6 +109,7 @@ TICKETS = [
         "body": "I was charged for another year of subscription even though I cancelled last month. Please refund this unauthorized charge of $99.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Billing",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -111,6 +120,7 @@ TICKETS = [
         "body": "When I try to complete my purchase, I get a 500 Internal Server Error on the checkout page. This happens every time I try to pay.",
         "customer_tier": "bronze",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Technical",
         "difficulty": "easy",
         "adjacent_departments": []
@@ -123,6 +133,7 @@ TICKETS = [
         "body": "The device I purchased stopped working after just two weeks of use. It won't turn on at all. I'd like a replacement or refund.",
         "customer_tier": "silver",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Returns",
         "difficulty": "medium",
         "adjacent_departments": ["Technical", "Billing"]
@@ -133,6 +144,7 @@ TICKETS = [
         "body": "I was charged for an item that was supposedly out of stock. The order was cancelled but my credit card was still charged $45.",
         "customer_tier": "gold",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Billing",
         "difficulty": "medium",
         "adjacent_departments": ["Shipping", "Returns"]
@@ -143,6 +155,7 @@ TICKETS = [
         "body": "I'm trying to buy a subscription in the mobile app but the payment keeps failing. I've tried two different cards with no success.",
         "customer_tier": "bronze",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Technical",
         "difficulty": "medium",
         "adjacent_departments": ["Billing"]
@@ -153,6 +166,7 @@ TICKETS = [
         "body": "I ordered a blue medium shirt but received a red large one. I need the correct item sent to me. The order number is #98765.",
         "customer_tier": "silver",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Shipping",
         "difficulty": "medium",
         "adjacent_departments": ["Returns"]
@@ -163,6 +177,7 @@ TICKETS = [
         "body": "I purchased the software download but the download link in my confirmation email returns a 404 error. I need access to what I paid for.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Technical",
         "difficulty": "medium",
         "adjacent_departments": ["Billing"]
@@ -173,6 +188,7 @@ TICKETS = [
         "body": "My package arrived with the box completely crushed and the product inside is damaged. I would like a refund rather than a replacement.",
         "customer_tier": "platinum",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Billing",
         "difficulty": "medium",
         "adjacent_departments": ["Shipping", "Returns"]
@@ -183,6 +199,7 @@ TICKETS = [
         "body": "My account got locked after a payment attempt failed. Now I can't access my subscription or update my payment method. Please help.",
         "customer_tier": "silver",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Technical",
         "difficulty": "medium",
         "adjacent_departments": ["Billing"]
@@ -193,6 +210,7 @@ TICKETS = [
         "body": "My order arrived 3 weeks late, which is past the 30-day return window. The item doesn't fit properly. Can I still return it?",
         "customer_tier": "bronze",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Returns",
         "difficulty": "medium",
         "adjacent_departments": ["Shipping"]
@@ -203,6 +221,7 @@ TICKETS = [
         "body": "I cancelled my subscription 3 months ago but I'm still being charged $15/month. Please stop these charges and refund the last 3 months.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Billing",
         "difficulty": "medium",
         "adjacent_departments": ["Technical"]
@@ -213,6 +232,7 @@ TICKETS = [
         "body": "The product description said it includes feature X but mine doesn't have it. Is this a defective unit or was the description wrong?",
         "customer_tier": "silver",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Returns",
         "difficulty": "medium",
         "adjacent_departments": ["Technical"]
@@ -225,6 +245,7 @@ TICKETS = [
         "body": "I placed order #11111 which was cancelled due to stock issues. However, I was still charged. The support agent said a replacement would be sent automatically but I never received it. It's been 3 weeks.",
         "customer_tier": "platinum",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Billing",
         "difficulty": "hard",
         "adjacent_departments": ["Shipping", "Returns", "Technical"]
@@ -235,6 +256,7 @@ TICKETS = [
         "body": "During the system upgrade last weekend, my subscription access was lost. Now when I try to renew, the payment system errors out. I've been without service for 5 days and need this resolved urgently.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Technical",
         "difficulty": "hard",
         "adjacent_departments": ["Billing"]
@@ -245,6 +267,7 @@ TICKETS = [
         "body": "I placed three orders last week. Order A was sent to the wrong address, Order B contained items from Order C, and Order C never arrived. This is a complete mess. I need all three sorted out.",
         "customer_tier": "platinum",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Shipping",
         "difficulty": "hard",
         "adjacent_departments": ["Returns", "Billing", "Technical"]
@@ -255,6 +278,7 @@ TICKETS = [
         "body": "I was promised a refund for a defective product. The system shows the refund was processed but I never received it. Now my account is suspended for non-payment of the next billing cycle. This is completely unfair.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Billing",
         "difficulty": "hard",
         "adjacent_departments": ["Technical", "Returns"]
@@ -265,6 +289,7 @@ TICKETS = [
         "body": "My subscription data isn't syncing between my devices. This caused duplicate charges on my tablet while my phone shows the subscription as expired. The app crashes when I try to sync manually. I need both the billing and sync issues fixed.",
         "customer_tier": "platinum",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Technical",
         "difficulty": "hard",
         "adjacent_departments": ["Billing"]
@@ -275,6 +300,7 @@ TICKETS = [
         "body": "I returned an item 2 months ago but the tracking shows it's stuck at a distribution center. The refund can't be processed to my original card because it expired. I need the refund sent to my new payment method and the return situation resolved.",
         "customer_tier": "silver",
         "priority": "medium",
+        "sentiment": "neutral",
         "correct_department": "Returns",
         "difficulty": "hard",
         "adjacent_departments": ["Shipping", "Billing"]
@@ -285,6 +311,7 @@ TICKETS = [
         "body": "I upgraded my plan using a promotional code that was supposed to give me 50% off for 6 months. The discount was never applied, and I've been paying full price for 4 months. When I try to contact support about this, the ticket system keeps redirecting me in circles.",
         "customer_tier": "gold",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Billing",
         "difficulty": "hard",
         "adjacent_departments": ["Technical"]
@@ -295,6 +322,7 @@ TICKETS = [
         "body": "My account was hacked and someone placed 5 fraudulent orders using my saved payment method. I reported this immediately but the orders weren't cancelled in time. Now the refunds are being denied because 'the orders were delivered'. I need these charges reversed and my account secured.",
         "customer_tier": "platinum",
         "priority": "high",
+        "sentiment": "frustrated",
         "correct_department": "Billing",
         "difficulty": "hard",
         "adjacent_departments": ["Technical", "Shipping", "Returns"]

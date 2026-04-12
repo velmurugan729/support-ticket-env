@@ -1,4 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
+﻿# Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
 # This source code is licensed under the BSD-style license found in the
@@ -113,6 +113,7 @@ class SupportTicketEnvdirEnvironment(Environment):
         self._episode_done = False
         self._last_action = ""
         self._last_reward = 0.0
+        self._reward_reason = ""
 
     def reset(self) -> TicketObservation:
         """
@@ -124,6 +125,7 @@ class SupportTicketEnvdirEnvironment(Environment):
         self._episode_done = False
         self._last_action = ""
         self._last_reward = 0.0
+        self._reward_reason = "Environment reset."
         _task_manager.reset_episode()
 
         # Get current task and ticket
@@ -164,32 +166,56 @@ class SupportTicketEnvdirEnvironment(Environment):
             action = TicketAction() 
 
         dept = (action.department or "").strip().lower() 
-        logger.info(f"Action: department='{dept}', confidence={action.confidence}")
+        confidence = getattr(action, 'confidence', 0.5) or 0.5
+        logger.info(f"Action: department='{dept}', confidence={confidence}")
 
         # 1. Validate if it's a real routing attempt (not empty, not "General", and was parsed correctly)
         if not is_valid_action or not dept or dept == "general": 
             # Invalid action or default → light penalty, retry allowed, NO step count increase 
             reward = 0.05 
+            reason = "❌ Invalid action. Please provide a specific department (Billing, Technical, Shipping, Returns)."
             done = False 
+            self._escalation_triggered = False
             logger.info("Invalid or default action. Retrying...")
         else: 
-            # 2. Real department → call grader 
+            # 2. Real department → call grader with multi-objective parameters
             task_name = get_current_task()
             correct_dept = self._current_ticket_data.get("correct_department", "General") 
             adjacent_depts = self._current_ticket_data.get("adjacent_departments", []) 
+            sentiment = self._current_ticket_data.get("sentiment", "neutral")
+            step_number = self._state.step_count + 1
+            
+            # ESCALATION MECHANIC: Check if we should escalate
+            # Trigger: wrong_department AND frustrated_sentiment AND confidence < 0.7
+            is_wrong = (dept != correct_dept.lower())
+            is_frustrated = (sentiment.lower() == "frustrated")
+            low_confidence = (confidence < 0.7)
+            
+            self._escalation_triggered = is_wrong and is_frustrated and low_confidence
+            
+            if self._escalation_triggered:
+                logger.info(f"🚨 ESCALATION TRIGGERED: wrong={is_wrong}, frustrated={is_frustrated}, low_conf={low_confidence}")
 
-            if task_name == "easy_routing": 
-                reward = _task_manager.grade_easy(dept, correct_dept)
-            elif task_name == "medium_routing": 
-                reward = _task_manager.grade_medium(dept, correct_dept, adjacent_depts) 
+            if task_name == "easy_routing":
+                customer_tier = self._current_ticket_data.get("customer_tier", "bronze") 
+                reward, reason, metadata = _task_manager.grade_easy(
+                    dept, correct_dept, sentiment, confidence, step_number, self._escalation_triggered, customer_tier
+                )
+            elif task_name == "medium_routing":
+                reward, reason, metadata = _task_manager.grade_medium(
+                    dept, correct_dept, adjacent_depts, sentiment, confidence, step_number, self._escalation_triggered
+                ) 
             else: 
                 if not hasattr(_task_manager, '_previous_actions'):
                     _task_manager._previous_actions = []
-                reward = _task_manager.grade_hard(dept, correct_dept, self._state.step_count + 1, _task_manager._previous_actions, adjacent_depts) 
+                reward, reason, metadata = _task_manager.grade_hard(
+                    dept, correct_dept, step_number, _task_manager._previous_actions, 
+                    adjacent_depts, sentiment, confidence, self._escalation_triggered
+                ) 
                 _task_manager._previous_actions.append(dept)
 
-            reward = max(0.05, min(0.95, float(reward))) 
-            logger.info(f"Task: {task_name}, Grader reward: {reward:.2f}")
+            reward = max(0.06, min(0.94, float(reward))) 
+            logger.info(f"Task: {task_name}, Reward: {reward:.2f}, Escalated: {self._escalation_triggered}")
 
             # 3. Increment step_count ONLY after all validation checks for real attempts 
             self._state.step_count += 1 
@@ -197,24 +223,26 @@ class SupportTicketEnvdirEnvironment(Environment):
             self._step_rewards.append(reward)
             self._last_action = action.department
             self._last_reward = reward
+            self._reward_reason = reason
+            self._last_metadata = metadata
 
-            # 4. Done ONLY on high reward OR max real steps reached 
+            # 4. Done on high reward, escalation, OR max steps reached 
             task_config = _task_manager.get_task_config(task_name)
             max_steps = task_config.get("max_steps", 3) 
-            done = (reward >= 0.85) or (self._state.step_count >= max_steps) 
+            done = (reward >= 0.85) or (self._state.step_count >= max_steps) or self._escalation_triggered
             self._episode_done = done
-            logger.info(f"Step {self._state.step_count}/{max_steps}, Done: {done}")
+            logger.info(f"Step {self._state.step_count}/{max_steps}, Done: {done}, Escalated: {self._escalation_triggered}")
 
         return self._get_current_observation(reward=float(reward), done=bool(done))
 
     def _get_current_observation(self, reward: float = 0.05, done: bool = False) -> TicketObservation:
-        """Get the current observation with updated state."""
+        """Helper to create TicketObservation from current state."""
         task_name = get_current_task()
         if not self._current_ticket_data:
             self._current_ticket_data = get_ticket_for_task(task_name, _current_ticket_index)
 
         task_config = _task_manager.get_task_config(task_name)
-        max_steps = task_config.get("max_steps", 1)
+        max_steps = task_config.get("max_steps", 3)
 
         # Ensure reward is a float and within bounds [0.05, 0.95]
         final_reward = float(max(0.05, min(0.95, reward)))
@@ -225,13 +253,17 @@ class SupportTicketEnvdirEnvironment(Environment):
             body=str(self._current_ticket_data.get("body", "No Body")),
             customer_tier=str(self._current_ticket_data.get("customer_tier", "bronze")),
             priority=str(self._current_ticket_data.get("priority", "low")),
+            sentiment=str(self._current_ticket_data.get("sentiment", "neutral")),
             task_difficulty=str(self._current_ticket_data.get("difficulty", task_name)),
             steps_taken=int(self._state.step_count),
             max_steps=int(max_steps),
             reward=final_reward,
+            reward_reason=str(self._reward_reason),
             done=bool(done),
             last_action=str(self._last_action),
             last_reward=float(self._last_reward),
+            escalation_triggered=getattr(self, '_escalation_triggered', False),
+            cumulative_reward=float(getattr(self, '_cumulative_reward', 0.0)),
         )
 
     @property
