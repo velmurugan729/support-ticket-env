@@ -561,6 +561,13 @@ gradio_ui = create_gradio_ui()
 app = gr.mount_gradio_app(app, gradio_ui, path="/web")
 logger.info("Gradio UI mounted at /web")
 
+# Add redirect from root to Gradio UI
+from starlette.responses import RedirectResponse
+@app.get("/")
+async def redirect_to_ui():
+    """Redirect root path to Gradio UI."""
+    return RedirectResponse(url="/web/")
+
 
 def main(host: str = "0.0.0.0", port: int = 8000):
     """Entry point for direct execution."""
