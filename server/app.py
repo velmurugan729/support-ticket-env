@@ -520,32 +520,45 @@ app.add_middleware(
 # Remove OpenEnv's default UI routes to prevent override
 # OpenEnv's create_app mounts its own generic UI at /
 # We want to serve our custom Gradio UI instead
+import logging
+logger = logging.getLogger(__name__)
+
+# API endpoints we need to preserve
+API_ENDPOINTS = {"/reset", "/step", "/state", "/schema", "/openapi.json", "/docs", "/redoc"}
+
 routes_to_remove = []
+logger.info(f"Total routes before cleanup: {len(app.routes)}")
+
 for route in app.routes:
-    # Remove any route that serves HTML UI (not API endpoints)
     if hasattr(route, 'path'):
         path = route.path
-        # Remove root path and any UI-related paths
-        if path == "/" or path.startswith("/ui") or path.startswith("/interface"):
+        # Keep API endpoints
+        if path in API_ENDPOINTS or path.startswith("/api"):
+            continue
+        # Remove root path GET handler (but keep for mounting Gradio)
+        if path == "/":
+            if hasattr(route, 'methods') and 'GET' in (route.methods or []):
+                routes_to_remove.append(route)
+                logger.info(f"Removing root GET route: {getattr(route, 'name', 'unknown')}")
+        # Remove any UI-specific paths
+        elif "ui" in path.lower() or "interface" in path.lower():
             routes_to_remove.append(route)
-        # Remove routes with UI-serving methods
-        elif hasattr(route, 'methods') and route.methods:
-            if any(m in ['GET', 'HEAD'] for m in route.methods):
-                # Check if it's a UI route (not API)
-                if path not in ["/reset", "/step", "/state", "/schema", "/ws"] and not path.startswith("/api"):
-                    if path == "/" or "ui" in str(getattr(route, 'name', '')).lower():
-                        routes_to_remove.append(route)
+            logger.info(f"Removing UI route: {path}")
 
 # Remove found routes
 for route in routes_to_remove:
     try:
         app.routes.remove(route)
+        logger.info(f"Removed route: {getattr(route, 'path', 'unknown')}")
     except ValueError:
-        pass  # Route already removed
+        pass
+
+logger.info(f"Routes after cleanup: {len(app.routes)}")
 
 # Create and mount Gradio UI at root
 gradio_ui = create_gradio_ui()
 app = gr.mount_gradio_app(app, gradio_ui, path="/")
+logger.info("Gradio UI mounted at /")
 
 
 def main(host: str = "0.0.0.0", port: int = 8000):
