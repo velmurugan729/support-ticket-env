@@ -555,10 +555,11 @@ for route in routes_to_remove:
 
 logger.info(f"Routes after cleanup: {len(app.routes)}")
 
-# Create and mount Gradio UI at root
+# Create and mount Gradio UI
+# Hugging Face Spaces routes traffic through /web path
 gradio_ui = create_gradio_ui()
-app = gr.mount_gradio_app(app, gradio_ui, path="/")
-logger.info("Gradio UI mounted at /")
+app = gr.mount_gradio_app(app, gradio_ui, path="/web")
+logger.info("Gradio UI mounted at /web")
 
 
 def main(host: str = "0.0.0.0", port: int = 8000):
