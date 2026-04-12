@@ -543,7 +543,7 @@ for route in routes_to_remove:
     except ValueError:
         pass  # Route already removed
 
-# Mount our professional Gradio UI at root path
+# Create and mount Gradio UI at root
 gradio_ui = create_gradio_ui()
 app = gr.mount_gradio_app(app, gradio_ui, path="/")
 
