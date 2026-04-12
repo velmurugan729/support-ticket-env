@@ -522,14 +522,26 @@ app.add_middleware(
 # We want to serve our custom Gradio UI instead
 routes_to_remove = []
 for route in app.routes:
-    # Remove OpenEnv's default UI routes (they typically have "Get" or "Get State" in name)
-    if hasattr(route, 'name') and route.name in ["get_ui", "get_state_ui", "reset_ui", "step_ui"]:
-        routes_to_remove.append(route)
-    elif hasattr(route, 'path') and route.path in ["/", "/ui", "/interface"]:
-        routes_to_remove.append(route)
+    # Remove any route that serves HTML UI (not API endpoints)
+    if hasattr(route, 'path'):
+        path = route.path
+        # Remove root path and any UI-related paths
+        if path == "/" or path.startswith("/ui") or path.startswith("/interface"):
+            routes_to_remove.append(route)
+        # Remove routes with UI-serving methods
+        elif hasattr(route, 'methods') and route.methods:
+            if any(m in ['GET', 'HEAD'] for m in route.methods):
+                # Check if it's a UI route (not API)
+                if path not in ["/reset", "/step", "/state", "/schema", "/ws"] and not path.startswith("/api"):
+                    if path == "/" or "ui" in str(getattr(route, 'name', '')).lower():
+                        routes_to_remove.append(route)
 
+# Remove found routes
 for route in routes_to_remove:
-    app.routes.remove(route)
+    try:
+        app.routes.remove(route)
+    except ValueError:
+        pass  # Route already removed
 
 # Mount our professional Gradio UI at root path
 gradio_ui = create_gradio_ui()

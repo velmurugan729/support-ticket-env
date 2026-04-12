@@ -12,4 +12,5 @@ COPY . .
 
 EXPOSE 7860
 
-CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
+# Run standalone Gradio UI (replaces OpenEnv's default generic UI)
+CMD ["python", "gradio_app.py"]
