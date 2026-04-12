@@ -517,56 +517,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Remove OpenEnv's default UI routes to prevent override
-# OpenEnv's create_app mounts its own generic UI at /
-# We want to serve our custom Gradio UI instead
+# Remove ALL OpenEnv UI routes aggressively
 import logging
 logger = logging.getLogger(__name__)
 
-# API endpoints we need to preserve
-API_ENDPOINTS = {"/reset", "/step", "/state", "/schema", "/openapi.json", "/docs", "/redoc"}
+# Preserve only API endpoints
+API_ENDPOINTS = {"/reset", "/step", "/state", "/schema", "/openapi.json", "/docs", "/redoc", "/ws"}
 
 routes_to_remove = []
 logger.info(f"Total routes before cleanup: {len(app.routes)}")
 
-for route in app.routes:
+for i, route in enumerate(list(app.routes)):
     if hasattr(route, 'path'):
         path = route.path
-        # Keep API endpoints
-        if path in API_ENDPOINTS or path.startswith("/api"):
+        # Keep API endpoints and static files
+        if path in API_ENDPOINTS or path.startswith("/api") or path.startswith("/static"):
             continue
-        # Remove root path GET handler (but keep for mounting Gradio)
+        # Remove EVERYTHING at root path
         if path == "/":
-            if hasattr(route, 'methods') and 'GET' in (route.methods or []):
-                routes_to_remove.append(route)
-                logger.info(f"Removing root GET route: {getattr(route, 'name', 'unknown')}")
-        # Remove any UI-specific paths
-        elif "ui" in path.lower() or "interface" in path.lower():
             routes_to_remove.append(route)
-            logger.info(f"Removing UI route: {path}")
+            logger.info(f"Removing root route {i}: {getattr(route, 'name', 'unknown')}")
+        # Remove UI paths
+        elif any(x in path.lower() for x in ["ui", "interface", "web"]):
+            if path not in ["/web", "/web/"]:
+                routes_to_remove.append(route)
+                logger.info(f"Removing UI route: {path}")
 
-# Remove found routes
-for route in routes_to_remove:
+# Remove in reverse order to avoid index issues
+for route in reversed(routes_to_remove):
     try:
         app.routes.remove(route)
-        logger.info(f"Removed route: {getattr(route, 'path', 'unknown')}")
-    except ValueError:
+    except (ValueError, IndexError):
         pass
 
 logger.info(f"Routes after cleanup: {len(app.routes)}")
 
-# Create and mount Gradio UI
-# Hugging Face Spaces routes traffic through /web path
+# Mount our Gradio UI at root path - this will override everything
 gradio_ui = create_gradio_ui()
-app = gr.mount_gradio_app(app, gradio_ui, path="/web")
-logger.info("Gradio UI mounted at /web")
-
-# Add redirect from root to Gradio UI
-from starlette.responses import RedirectResponse
-@app.get("/")
-async def redirect_to_ui():
-    """Redirect root path to Gradio UI."""
-    return RedirectResponse(url="/web/")
+app = gr.mount_gradio_app(app, gradio_ui, path="/")
+logger.info("Gradio UI mounted at / (ROOT)")
 
 
 def main(host: str = "0.0.0.0", port: int = 8000):
