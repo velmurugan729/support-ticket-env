@@ -339,5 +339,5 @@ Copyright (c) Meta Platforms, Inc. and affiliates. Licensed under BSD-style lice
 
 *This project demonstrates a production-ready approach to Reinforcement Learning, focusing on transparency, human-readable feedback, and curriculum-based learning progression.*
 
-<!-- Deployed: 2024 -->
+<!-- Deployed: 2024-04-12-v3 -->
 
